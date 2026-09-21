@@ -1,29 +1,88 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jardín de Flores Interactivo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <title>Love For Code ❤️</title>
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: 'Georgia', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    <link rel="stylesheet" href="style.css">
+        /* Lienzo interactivo para las flores */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Tarjeta de texto flotante "My Love" */
+        .message-card {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: #ffffff;
+            background: rgba(15, 15, 22, 0.7);
+            padding: 28px 45px;
+            border-radius: 18px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transform: translateY(25px);
+            animation: emerge 2.5s ease-out 3.5s forwards;
+            pointer-events: none;
+        }
+
+        .message-card h1 {
+            font-size: 2.6rem;
+            font-weight: 400;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+        }
+
+        .message-card p {
+            font-size: 0.95rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: rgba(255, 255, 255, 0.75);
+            letter-spacing: 0.8px;
+        }
+
+        @keyframes emerge {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
-
 <body>
 
-    <main class="scene">
+    <canvas id="flowerCanvas"></canvas>
 
-        <canvas id="heartCanvas"></canvas>
-
-        <div class="message">
-            Te <span>Quiero</span> Mucho ❤️
-        </div>
-
-    </main>
+    <div class="message-card">
+        <h1>Creo que hoy es el dia de las flores amarillas :v</h1>
+        <p>te regalo estas flores, espero te gusten ❤️ </p>
+    </div>
 
     <script src="script.js"></script>
-
 </body>
 </html>
-```

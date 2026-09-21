@@ -1,278 +1,342 @@
-const canvas = document.getElementById("heartCanvas");
-const ctx = canvas.getContext("2d");
 
+const canvas = document.getElementById('flowerCanvas');
+const ctx = canvas.getContext('2d');
 
-// =====================================================
-// CONFIGURACIÓN
-// =====================================================
-
-const PARTICLES = 900;
-
-// Tiempo que tarda en formarse el corazón
-const FORMATION_TIME = 180;
-
-// Tamaño base de las partículas
-const MIN_SIZE = 1.2;
-const MAX_SIZE = 3.0;
-
-
-// =====================================================
-// VARIABLES
-// =====================================================
-
-let particles = [];
-
-let width;
-let height;
-
-let scale;
-
-let frame = 0;
-
-
-// =====================================================
-// AJUSTAR CANVAS
-// =====================================================
+let width, height;
 
 function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+}
 
-    const dpr = Math.min(
-        window.devicePixelRatio || 1,
-        2
-    );
-
-    width = window.innerWidth;
-    height = window.innerHeight;
-
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
-
-    ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-    );
+window.addEventListener('resize', resize);
+resize();
 
 
-    // Tamaño del corazón
+// ==========================================
+// PALETA DE FLORES AMARILLAS
+// ==========================================
 
-    scale = Math.min(
-        width,
+const flowerPalette = [
+    { petal: '#FFD700', center: '#B8860B' }, // Amarillo dorado
+    { petal: '#FFC107', center: '#8B5A00' }, // Amarillo intenso
+    { petal: '#FFEB3B', center: '#C77700' }, // Amarillo brillante
+    { petal: '#F9C74F', center: '#9A5B00' }, // Amarillo cálido
+    { petal: '#FFE066', center: '#A65F00' }, // Amarillo suave
+    { petal: '#FFCA28', center: '#8D5700' }, // Amarillo naranja
+    { petal: '#FFD54F', center: '#A66A00' }  // Amarillo claro
+];
+
+
+// ==========================================
+// PARTÍCULAS DE LUZ / POLEN
+// ==========================================
+
+const pollenParticles = [];
+
+for (let i = 0; i < 90; i++) {
+    pollenParticles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size: Math.random() * 2.2 + 0.5,
+        vy: -(Math.random() * 0.35 + 0.1),
+        vx: (Math.random() - 0.5) * 0.25,
+        alpha: Math.random() * 0.7 + 0.3
+    });
+}
+
+
+// ==========================================
+// GENERACIÓN DE LAS FLORES
+// ==========================================
+
+const flowers = [];
+
+const totalFlowers = Math.floor(window.innerWidth / 26);
+
+for (let i = 0; i < totalFlowers; i++) {
+
+    const startX =
+        (width / totalFlowers) * i +
+        (Math.random() * 18 - 9);
+
+    const targetHeight =
+        Math.random() * (height * 0.48) +
+        (height * 0.22);
+
+    const curve =
+        (Math.random() - 0.5) * 70;
+
+    const color =
+        flowerPalette[
+            Math.floor(Math.random() * flowerPalette.length)
+        ];
+
+    flowers.push({
+        x: startX,
+        startY: height,
+
+        currentHeight: 0,
+
+        targetHeight: targetHeight,
+
+        curve: curve,
+
+        speed: Math.random() * 2.2 + 1.4,
+
+        bloomProgress: 0,
+
+        petalCount:
+            Math.floor(Math.random() * 4) + 6,
+
+        flowerSize:
+            Math.random() * 13 + 12,
+
+        color: color,
+
+        delay:
+            Math.random() * 45
+    });
+}
+
+
+// ==========================================
+// DIBUJAR TALLO Y HOJAS
+// ==========================================
+
+function drawStem(flower) {
+
+    const progress =
+        flower.currentHeight /
+        flower.targetHeight;
+
+    const currentY =
+        height - flower.currentHeight;
+
+    const controlX =
+        flower.x +
+        flower.curve * progress;
+
+    const controlY =
+        height -
+        (flower.currentHeight / 2);
+
+
+    // Tallo
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        flower.x,
         height
-    ) / 38;
-}
+    );
+
+    ctx.quadraticCurveTo(
+        controlX,
+        controlY,
+        flower.x +
+        (flower.curve * progress),
+        currentY
+    );
+
+    ctx.strokeStyle = '#2d6a4f';
+
+    ctx.lineWidth = 3;
+
+    ctx.stroke();
 
 
-// =====================================================
-// NÚMERO ALEATORIO
-// =====================================================
+    // ======================================
+    // HOJAS
+    // ======================================
 
-function random(min, max) {
+    if (progress > 0.35) {
 
-    return Math.random() * (max - min) + min;
+        const leafY =
+            height -
+            (flower.targetHeight * 0.35);
 
-}
+        const leafX =
+            flower.x +
+            (flower.curve * 0.35);
 
 
-// =====================================================
-// FUNCIÓN DEL CORAZÓN
-// =====================================================
+        ctx.save();
 
-function heartPoint(t) {
+        ctx.fillStyle = '#40916c';
 
-    /*
-        Fórmula matemática del corazón
+        ctx.beginPath();
 
-        X = 16 sin³(t)
-
-        Y =
-        13 cos(t)
-        - 5 cos(2t)
-        - 2 cos(3t)
-        - cos(4t)
-    */
-
-    const x =
-        16 *
-        Math.pow(
-            Math.sin(t),
-            3
+        ctx.ellipse(
+            leafX + 7,
+            leafY,
+            9,
+            3.5,
+            Math.PI / 4,
+            0,
+            Math.PI * 2
         );
 
+        ctx.ellipse(
+            leafX - 7,
+            leafY + 8,
+            9,
+            3.5,
+            -Math.PI / 4,
+            0,
+            Math.PI * 2
+        );
 
-    const y =
-        13 * Math.cos(t)
-        - 5 * Math.cos(2 * t)
-        - 2 * Math.cos(3 * t)
-        - Math.cos(4 * t);
+        ctx.fill();
+
+        ctx.restore();
+    }
 
 
     return {
-        x: x * scale,
-        y: -y * scale
+        x:
+            flower.x +
+            (flower.curve * progress),
+
+        y: currentY
     };
 }
 
 
-// =====================================================
-// INTERPOLACIÓN SUAVE
-// =====================================================
+// ==========================================
+// DIBUJAR FLOR AMARILLA
+// ==========================================
 
-function easeOutCubic(t) {
+function drawFlowerHead(x, y, flower) {
 
-    return 1 -
-        Math.pow(
-            1 - t,
-            3
-        );
-}
+    const size =
+        flower.flowerSize *
+        flower.bloomProgress;
+
+    if (size <= 0) return;
 
 
-// =====================================================
-// CREAR PARTÍCULAS
-// =====================================================
+    ctx.save();
 
-function createParticles() {
+    ctx.translate(x, y);
 
-    particles = [];
+
+    // ======================================
+    // PÉTALOS AMARILLOS
+    // ======================================
+
+    ctx.fillStyle =
+        flower.color.petal;
+
+    const angleStep =
+        (Math.PI * 2) /
+        flower.petalCount;
 
 
     for (
         let i = 0;
-        i < PARTICLES;
+        i < flower.petalCount;
         i++
     ) {
 
-        // =============================================
-        // ÁNGULO
-        // =============================================
-
-        const t =
-            (i / PARTICLES) *
-            Math.PI *
-            2;
-
-
-        // =============================================
-        // BORDE DEL CORAZÓN
-        // =============================================
-
-        const heart =
-            heartPoint(t);
-
-
-        // =============================================
-        // HACER EL CORAZÓN MÁS LLENO
-        // =============================================
-
-        /*
-            Algunas partículas estarán cerca
-            del borde y otras hacia el centro.
-        */
-
-        const fill =
-            Math.sqrt(
-                Math.random()
-            );
-
-
-        const targetX =
-            heart.x *
-            fill;
-
-
-        const targetY =
-            heart.y *
-            fill;
-
-
-        // =============================================
-        // POSICIÓN INICIAL
-        // =============================================
-
         const angle =
-            random(
-                0,
-                Math.PI * 2
-            );
+            i * angleStep;
 
+        ctx.save();
 
-        const distance =
-            random(
-                Math.min(width, height) * 0.20,
-                Math.min(width, height) * 0.55
-            );
+        ctx.rotate(angle);
 
+        ctx.beginPath();
 
-        const startX =
-            Math.cos(angle) *
-            distance;
+        ctx.ellipse(
+            0,
+            size * 0.85,
+            size * 0.48,
+            size * 0.88,
+            0,
+            0,
+            Math.PI * 2
+        );
 
+        ctx.fill();
 
-        const startY =
-            Math.sin(angle) *
-            distance;
-
-
-        // =============================================
-        // PARTÍCULA
-        // =============================================
-
-        particles.push({
-
-            // Posición inicial
-            x: startX,
-            y: startY,
-
-            // Posición final
-            tx: targetX,
-            ty: targetY,
-
-            // Tamaño
-            size:
-                random(
-                    MIN_SIZE,
-                    MAX_SIZE
-                ),
-
-            // Variación
-            phase:
-                random(
-                    0,
-                    Math.PI * 2
-                ),
-
-            // Velocidad individual
-            speed:
-                random(
-                    0.85,
-                    1.15
-                )
-
-        });
-
+        ctx.restore();
     }
 
+
+    // ======================================
+    // CENTRO DE LA FLOR
+    // ======================================
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        0,
+        size * 0.4,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fillStyle =
+        flower.color.center;
+
+    ctx.fill();
+
+
+    // Pequeños puntos en el centro
+    // para darle apariencia de girasol
+
+    const dots = 12;
+
+    for (let i = 0; i < dots; i++) {
+
+        const angle =
+            (Math.PI * 2 / dots) * i;
+
+        const radius =
+            size * 0.25;
+
+        const dotX =
+            Math.cos(angle) * radius;
+
+        const dotY =
+            Math.sin(angle) * radius;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            dotX,
+            dotY,
+            size * 0.035,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle =
+            '#6B3E00';
+
+        ctx.fill();
+    }
+
+
+    ctx.restore();
 }
 
 
-// =====================================================
-// DIBUJAR
-// =====================================================
+// ==========================================
+// ANIMACIÓN
+// ==========================================
 
-function draw() {
+let frameCount = 0;
 
-    // =============================================
-    // FONDO NEGRO
-    // =============================================
 
-    ctx.fillStyle = "#000";
+function animate() {
+
+    // Fondo oscuro
+
+    ctx.fillStyle =
+        'rgba(11, 12, 16, 0.28)';
 
     ctx.fillRect(
         0,
@@ -282,249 +346,117 @@ function draw() {
     );
 
 
-    // =============================================
-    // CENTRO
-    // =============================================
+    frameCount++;
 
-    const centerX =
-        width / 2;
 
-    const centerY =
-        height / 2 - 30;
+    // ======================================
+    // PARTÍCULAS AMARILLAS
+    // ======================================
 
+    for (let p of pollenParticles) {
 
-    // =============================================
-    // PROGRESO
-    // =============================================
+        p.y += p.vy;
+        p.x += p.vx;
 
-    const progress =
-        Math.min(
-            frame / FORMATION_TIME,
-            1
-        );
 
-
-    const eased =
-        easeOutCubic(
-            progress
-        );
-
-
-    // =============================================
-    // BRILLO
-    // =============================================
-
-    ctx.save();
-
-    ctx.globalCompositeOperation =
-        "lighter";
-
-
-    // =============================================
-    // PARTÍCULAS
-    // =============================================
-
-    particles.forEach(
-        (p, index) => {
-
-
-            // =========================================
-            // POSICIÓN DURANTE LA ANIMACIÓN
-            // =========================================
-
-            let x =
-                p.x +
-                (p.tx - p.x) *
-                eased;
-
-
-            let y =
-                p.y +
-                (p.ty - p.y) *
-                eased;
-
-
-            // =========================================
-            // PULSACIÓN DEL CORAZÓN
-            // =========================================
-
-            if (progress >= 1) {
-
-                const pulse =
-                    1 +
-                    Math.sin(
-                        frame * 0.055
-                    ) * 0.025;
-
-
-                x *= pulse;
-                y *= pulse;
-
-            }
-
-
-            // =========================================
-            // PEQUEÑO MOVIMIENTO
-            // =========================================
-
-            if (progress >= 1) {
-
-                x +=
-                    Math.sin(
-                        frame * 0.025 +
-                        p.phase
-                    ) * 0.5;
-
-
-                y +=
-                    Math.cos(
-                        frame * 0.025 +
-                        p.phase
-                    ) * 0.5;
-
-            }
-
-
-            // =========================================
-            // POSICIÓN EN PANTALLA
-            // =========================================
-
-            const px =
-                centerX + x;
-
-
-            const py =
-                centerY + y;
-
-
-            // =========================================
-            // GLOW
-            // =========================================
-
-            ctx.beginPath();
-
-            ctx.fillStyle =
-                "rgba(255, 0, 150, 0.13)";
-
-
-            ctx.arc(
-                px,
-                py,
-                p.size * 3.5,
-                0,
-                Math.PI * 2
-            );
-
-
-            ctx.fill();
-
-
-            // =========================================
-            // PARTÍCULA
-            // =========================================
-
-            ctx.beginPath();
-
-
-            ctx.fillStyle =
-                "#f80404";
-
-
-            ctx.arc(
-                px,
-                py,
-                p.size,
-                0,
-                Math.PI * 2
-            );
-
-
-            ctx.fill();
-
-
-            // =========================================
-            // PUNTO CENTRAL MÁS BRILLANTE
-            // =========================================
-
-            if (p.size > 2) {
-
-                ctx.beginPath();
-
-                ctx.fillStyle =
-                    "#f00a1d";
-
-                ctx.arc(
-                    px,
-                    py,
-                    p.size * 0.35,
-                    0,
-                    Math.PI * 2
-                );
-
-                ctx.fill();
-
-            }
-
+        if (p.y < 0) {
+            p.y = height;
         }
-    );
+
+        if (p.x < 0) {
+            p.x = width;
+        }
+
+        if (p.x > width) {
+            p.x = 0;
+        }
 
 
-    ctx.restore();
+        // CORREGIDO:
+        // Antes faltaban las comillas en rgba()
+
+        ctx.fillStyle =
+            `rgba(255, 220, 80, ${p.alpha})`;
 
 
-    // =============================================
-    // SIGUIENTE FRAME
-    // =============================================
+        ctx.beginPath();
 
-    frame++;
+        ctx.arc(
+            p.x,
+            p.y,
+            p.size,
+            0,
+            Math.PI * 2
+        );
 
-
-    // =============================================
-    // REINICIAR
-    // =============================================
-
-    if (frame > 650) {
-
-        frame = 0;
-
-        createParticles();
-
+        ctx.fill();
     }
 
 
-    // =============================================
-    // CONTINUAR
-    // =============================================
+    // ======================================
+    // CRECIMIENTO DE LAS FLORES
+    // ======================================
 
-    requestAnimationFrame(
-        draw
-    );
+    for (let flower of flowers) {
 
+        if (
+            frameCount <
+            flower.delay
+        ) {
+            continue;
+        }
+
+
+        // Crecimiento del tallo
+
+        if (
+            flower.currentHeight <
+            flower.targetHeight
+        ) {
+
+            flower.currentHeight +=
+                flower.speed;
+
+        }
+
+        // Apertura de la flor
+
+        else if (
+            flower.bloomProgress < 1
+        ) {
+
+            flower.bloomProgress +=
+                0.025;
+        }
+
+
+        // Dibujar tallo
+
+        const tipPosition =
+            drawStem(flower);
+
+
+        // Dibujar flor
+
+        if (
+            flower.bloomProgress > 0
+        ) {
+
+            drawFlowerHead(
+                tipPosition.x,
+                tipPosition.y,
+                flower
+            );
+        }
+    }
+
+
+    requestAnimationFrame(animate);
 }
 
 
-// =====================================================
-// RESIZE
-// =====================================================
+// ==========================================
+// INICIAR ANIMACIÓN
+// ==========================================
 
-window.addEventListener(
-    "resize",
-    () => {
-
-        resize();
-
-        createParticles();
-
-    }
-);
-
-
-// =====================================================
-// INICIAR
-// =====================================================
-
-resize();
-
-createParticles();
-
-draw();
+animate();
